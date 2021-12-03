@@ -393,7 +393,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def has_any_provider_settings(
         self, recipient: Team | User, provider: ExternalProviders
     ) -> bool:
-        return (
+        # Explicitly typing to satisfy mypy.
+        has_settings: bool = (
             self._filter(provider=provider, target_ids={recipient.actor_id})
             .filter(
                 value__in={
@@ -404,3 +405,4 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             )
             .exists()
         )
+        return has_settings
