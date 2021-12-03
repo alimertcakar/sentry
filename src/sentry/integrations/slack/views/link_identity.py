@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from sentry.integrations.utils import get_identity_or_404
 from sentry.models import Identity, Integration
+from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
@@ -60,6 +61,7 @@ class SlackLinkIdentityView(BaseView):  # type: ignore
         Identity.objects.link_identity(user=request.user, idp=idp, external_id=params["slack_id"])
 
         send_slack_response(integration, SUCCESS_LINKED_MESSAGE, params, command="link")
+        IntegrationNudgeNotification(organization, request.user, ExternalProviders.SLACK).send()
 
         # TODO(epurkhiser): We could do some fancy slack querying here to
         #  render a nice linking page with info about the user their linking.
