@@ -5,8 +5,7 @@ import random
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry.db.models import Model
-from sentry.notifications.notifications.base import OrganizationNotification
-from sentry.notifications.utils import send_base_notification
+from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import ExternalProviders
 
@@ -30,7 +29,7 @@ MESSAGE_LIBRARY = [
     "Notifications aren't always bad. Hear from Sentry right here in {provider}.",
     "Now, get Sentry notifications in {provider}. You choose the settings, so we'll"
     " blow up your phone exactly as much as you want us to.",
-    "Push notifications suck. Get more of them. ",
+    "Push notifications suck. Get more of them.",
     "Remember when email was exciting? It's not 1998 anymore. Get notified in {provider} instead.",
     "Reminisce on the days before your email address was an obligational burden"
     " while signing up for {provider} notifications instead.",
@@ -45,7 +44,19 @@ MESSAGE_LIBRARY = [
 ]
 
 
-class IntegrationNudgeNotification(OrganizationNotification):
+class IntegrationNudgeNotification(BaseNotification):
+    def get_filename(self) -> str:
+        pass
+
+    def get_category(self) -> str:
+        pass
+
+    def get_type(self) -> str:
+        pass
+
+    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
+        pass
+
     category = "integration_nudge"
     filename = "integration-nudge"
     type = "integration.nudge"
@@ -92,8 +103,3 @@ class IntegrationNudgeNotification(OrganizationNotification):
 
     def build_attachment_title(self) -> str:
         return ""
-
-    def send(self) -> None:
-        return send_base_notification(
-            notification=self, participants_by_provider=self.get_participants()
-        )

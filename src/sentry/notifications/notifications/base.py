@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry import analytics
 from sentry.notifications.utils.actions import MessageAction
@@ -19,6 +19,12 @@ class BaseNotification(abc.ABC):
 
     def __init__(self, organization: Organization):
         self.organization = organization
+
+    def get_context(self) -> MutableMapping[str, Any]:
+        raise NotImplementedError
+
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
+        raise NotImplementedError
 
     @property
     def org_slug(self) -> str:
@@ -102,6 +108,18 @@ class BaseNotification(abc.ABC):
 
     def get_callback_data(self) -> Mapping[str, Any] | None:
         return None
+
+    def send(self) -> None:
+        """The default way to send notifications that respects Notification Settings."""
+        from sentry.notifications.notify import notify
+
+        participants_by_provider = self.get_participants()
+        if not participants_by_provider:
+            return
+
+        context = self.get_context()
+        for provider, recipients in participants_by_provider.items():
+            notify(provider, self, recipients, context)
 
 
 class ProjectNotification(BaseNotification, abc.ABC):

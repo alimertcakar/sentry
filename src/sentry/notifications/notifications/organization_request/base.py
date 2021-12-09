@@ -40,8 +40,8 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         return {}
 
     def get_referrer(self, provider: ExternalProviders) -> str:
-        # referrer needs the provider as wellx
-        return f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}"
+        # Referrer needs the provider as well.
+        return f"{self.referrer_base}-{provider.name}"
 
     def get_sentry_query_params(self, provider: ExternalProviders) -> str:
         return f"?referrer={self.get_referrer(provider)}"
@@ -68,18 +68,6 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             for provider, recipients_of_provider in recipients_by_provider.items()
             if provider in available_providers
         }
-
-    def send(self) -> None:
-        from sentry.notifications.notify import notify
-
-        participants_by_provider = self.get_participants()
-        if not participants_by_provider:
-            return
-
-        context = self.get_context()
-        for provider, recipients in participants_by_provider.items():
-            # TODO: use safe_execute
-            notify(provider, self, recipients, context)
 
     def get_notification_title(self) -> str:
         # purposely use empty string for the notification title
