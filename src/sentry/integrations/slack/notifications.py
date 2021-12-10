@@ -148,9 +148,7 @@ def _notify_recipient(
     token: str = integration.metadata["access_token"]
 
     # Add optional billing related attachment.
-    additional_attachment = get_additional_attachment(
-        integration, notification.organization
-    )
+    additional_attachment = get_additional_attachment(integration, notification.organization)
     if additional_attachment:
         local_attachments.append(additional_attachment)
 
@@ -224,7 +222,7 @@ def send_notification_as_slack(
                 attachments=attachments,
                 channel=channel,
                 integration=integration,
-                is_multiple=is_multiple
+                is_multiple=is_multiple,
             )
 
     metrics.incr(

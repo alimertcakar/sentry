@@ -26,11 +26,13 @@ from sentry.models import (
     IdentityProvider,
     Integration,
     InviteStatus,
+    NotificationSetting,
     OrganizationMember,
     Project,
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
@@ -46,6 +48,9 @@ UNLINK_IDENTITY_MESSAGE = (
     "who is not a member of organization *{org_name}* used with this Slack integration. "
     "<{associate_url}|Unlink your identity now>. "
 )
+
+ENABLE_SLACK_SUCCESS_MESSAGE = "Slack has been enabled."
+
 DEFAULT_ERROR_MESSAGE = "Sentry can't perform that action right now on your behalf!"
 
 RESOLVE_SELECTOR = {
@@ -236,19 +241,17 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         except SlackRequestError as e:
             return self.respond(status=e.status)
 
-        action_option = slack_request.action_option
+        # Actions list may be empty when receiving a dialog response
+        data = slack_request.data
+        action_list = [MessageAction(**action_data) for action_data in data.get("actions", [])]
+        action_option = action_list and action_list[0].value
 
         if action_option in ["approve_member", "reject_member"]:
-            return self.handle_member_approval(slack_request)
+            return self.handle_member_approval(slack_request, action_option)
 
         # if a user is just clicking our auto response in the messages tab we just return a 200
         if action_option == "sentry_docs_link_clicked":
             return self.respond()
-
-        # Actions list may be empty when receiving a dialog response
-        data = slack_request.data
-        action_list_raw = data.get("actions", [])
-        action_list = [MessageAction(**action_data) for action_data in action_list_raw]
 
         organizations = slack_request.integration.organizations.all()
 
@@ -365,7 +368,25 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         return self.respond(body)
 
-    def handle_member_approval(self, slack_request: SlackActionRequest) -> Response:
+    def handle_enable_notifications(self, slack_request: SlackActionRequest) -> Response:
+        try:
+            identity = slack_request.get_identity()
+        except IdentityProvider.DoesNotExist:
+            identity = None
+        if not identity:
+            return self.respond(status=403)
+
+        NotificationSetting.objects.enable_settings_for_user(
+            recipient=identity.user,
+            provider=ExternalProviders.SLACK
+        )
+        return self.respond(ENABLE_SLACK_SUCCESS_MESSAGE)
+
+    def handle_member_approval(
+        self,
+        slack_request: SlackActionRequest,
+        action_option: str,
+    ) -> Response:
         try:
             # get_identity can return nobody
             identity = slack_request.get_identity()
@@ -411,7 +432,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         original_status = member.invite_status
         member_email = member.email
         try:
-            if slack_request.action_option == "approve_member":
+            if action_option == "approve_member":
                 member.approve_member_invitation(identity.user, referrer="slack")
             else:
                 member.reject_member_invitation(identity.user)
@@ -427,7 +448,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             return self.respond_ephemeral(DEFAULT_ERROR_MESSAGE)
 
         # record analytics and respond with success
-        approve_member = slack_request.action_option == "approve_member"
+        approve_member = action_option == "approve_member"
         event_name = (
             "integrations.slack.approve_member_invitation"
             if approve_member
