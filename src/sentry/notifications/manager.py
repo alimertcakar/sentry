@@ -412,9 +412,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self,
         recipient: User,
         provider: ExternalProviders,
-        types: set[NotificationSettingTypes] | None = None
+        types: set[NotificationSettingTypes] | None = None,
     ) -> None:
-        for type_ in (types or NOTIFICATION_SETTINGS_ALL_SOMETIMES.keys()):
+        for type_ in types or NOTIFICATION_SETTINGS_ALL_SOMETIMES.keys():
             self.update_settings(
                 provider=provider,
                 type=type_,
