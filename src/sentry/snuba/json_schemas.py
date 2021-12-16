@@ -29,8 +29,9 @@ SUBSCRIPTION_PAYLOAD_VERSIONS: Mapping[int, Mapping[str, Any]] = {
                 "required": ["data"],
             },
             "timestamp": {"type": "string", "format": "date-time"},
+            "entity": {"type": "string", "minLength": 1},
         },
-        "required": ["subscription_id", "values", "timestamp"],
+        "required": ["subscription_id", "values", "timestamp", "entity"],
         "additionalProperties": False,
     },
     2: {
@@ -54,8 +55,9 @@ SUBSCRIPTION_PAYLOAD_VERSIONS: Mapping[int, Mapping[str, Any]] = {
                 "required": ["data"],
             },
             "timestamp": {"type": "string", "format": "date-time"},
+            "entity": {"type": "string", "minLength": 1},
         },
-        "required": ["subscription_id", "request", "result", "timestamp"],
+        "required": ["subscription_id", "request", "result", "timestamp", "entity"],
         "additionalProperties": False,
     },
 }
