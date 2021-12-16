@@ -9,10 +9,9 @@ import TeamStore from 'sentry/stores/teamStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import VitalDetail from 'sentry/views/performance/vitalDetail/';
 
-function initializeData({query} = {query: {}}) {
-  const features = ['discover-basic', 'performance-view'];
+function initializeData({query = {}, orgFeatures = []} = {}) {
   const organization = TestStubs.Organization({
-    features,
+    features: ['discover-basic', 'performance-view', ...orgFeatures],
     projects: [TestStubs.Project()],
   });
   const initialData = initializeOrg({
@@ -342,5 +341,20 @@ describe('Performance > VitalDetail', function () {
 
     const firstRow = wrapper.find('GridBody GridRow').first();
     expect(firstRow.find('GridBodyCell').at(6).text()).toEqual('4.50s');
+  });
+
+  it('renders MetricsSwitch if feature flag enabled', async function () {
+    const {organization, router, routerContext} = initializeData({
+      orgFeatures: ['metrics-performance-ui'],
+    });
+
+    const wrapper = mountWithTheme(
+      <WrappedComponent organization={organization} location={router.location} />,
+      routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('MetricsSwitch Label').text()).toEqual('Metrics Data');
   });
 });
